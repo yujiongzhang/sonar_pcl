@@ -1721,12 +1721,12 @@ void sonarImage_Impro_gray_step2(vector<vector<uchar>>& matrix, cv::Mat& imageSe
                 else
                     angle = atan(x * 1.0 / y);
             }
-            double pingNum = angle / dAngle;  //精确波束号
+            double pingNum = angle / dAngle;    //精确波束号,double
             //double r=sqrt(x * x + y * y);     //精确行号
             int UT=0;//强度值
 
-            int prePingNum = angle / dAngle;
-            int afterPingNum = prePingNum + 1;
+            int prePingNum = angle / dAngle;    //向下取整
+            int afterPingNum = prePingNum + 1;  //向上取整
             if (afterPingNum == 294) afterPingNum = 0;
             int prer = sqrt(x * x + y * y);
             int afterr = prer + 1;
@@ -1742,12 +1742,14 @@ void sonarImage_Impro_gray_step2(vector<vector<uchar>>& matrix, cv::Mat& imageSe
             int ED = edgeMatrix[afterPingNum][prer];
 
             if(pingNum>=pingBegin && pingNum<=pingEnd){
-                if((EA==0 && EB==0 && EC==0 && ED==0) || (r<=4) || (r>=296)) {
+                if((EA==0 && EB==0 && EC==0 && ED==0) || (r<=4) || (r>=296))  //不为边缘像素点：用周向和径向线性插值
+                {
                     double UE = (afterr - r) * UC + (1 - (afterr - r)) * UA;
                     double UF = (afterr - r) * UD + (1 - (afterr - r)) * UB;
                     UT = (pingNum - prePingNum) * UF + (1 - (pingNum - prePingNum)) * UE+0.5;
                 }
-                else {
+                else {  //位于边缘像素点：用复杂方法插值
+                
                     // int prePingNum = angle / dAngle;
                     // int prer = sqrt(x * x + y * y);  //左下
 
