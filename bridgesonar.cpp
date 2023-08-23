@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 
     // data_to_point(argv[1]);
 
-    data_to_image_zyj(argv[1]);
+    data_to_point_zyj(argv[1]);
 
     waitKey(0);
     return 0;
@@ -115,7 +115,13 @@ void data_to_image_zyj(char* _filepath)
 
         for (int i = 0; i < 300; i++)
         {
-            dataMatrix_step2[pingNum][i] = tempArray[i];
+            if (i<=30)
+            {
+                dataMatrix_step2[pingNum][i] = 7; //消除发射圈高亮
+            }
+            else{
+                dataMatrix_step2[pingNum][i] = tempArray[i+1];
+            }
         }
 
         pingNum++;
@@ -132,26 +138,26 @@ void data_to_image_zyj(char* _filepath)
 
             Mat edge;
             blur(srcPingImage_step2, edge, Size(3, 3)); //模糊图像
-            imshow("after_bur", edge);
+            // imshow("after_bur", edge);
 
             Canny(edge, edge, 30, 60, 3);
             imshow("after_canny", edge);
             
             vector<vector<uchar>> edgeMatrix_step2(294, vector<uchar>(300, 0)); //数据矩阵
             pingImage_to_Matrix_Step2(edge, edgeMatrix_step2);                  //转为数据矩阵
-            cv::Mat srcImageImproSector(600, 600, CV_8UC1, Scalar(255));        //插值成像图片
-            sonarImage_Impro_gray_step2(dataMatrix_step2, srcImageImproSector, edgeMatrix_step2, 1, 159);
+            cv::Mat srcImageImproSector;                                        //插值成像图片(1维)
+            sonarImage_Impro_gray_step2(dataMatrix_step2, srcImageImproSector, edgeMatrix_step2, 1, 292);
             imshow("sectorimage_impro", srcImageImproSector);
 
-            cv::Mat srcImageImproSector3(300, 600, CV_8UC3, Scalar(255, 255, 255)); //插值成像图片
-            sonarImage_Impro_step2(dataMatrix_step2, srcImageImproSector3, edgeMatrix_step2, 30, 130);  //20,140
+            cv::Mat srcImageImproSector3; //插值成像图片(3维)
+            sonarImage_Impro_step2(dataMatrix_step2, srcImageImproSector3, edgeMatrix_step2, 1, 291);  //20,140
             imshow("sectorimage_impro3", srcImageImproSector3);
 
-            // waitKey(0);
+            // // waitKey(0);
             
             //--------------------有效边缘-----------------------------
             //图像增强
-            Mat pow_res15(300, 600, CV_8UC1, Scalar(0));
+            Mat pow_res15(600, 600, CV_8UC1, Scalar(0));
             powerTrans(srcImageImproSector, pow_res15, 0.2, 2);
             imshow("pow_res15", pow_res15);
             //图像降噪
@@ -163,14 +169,14 @@ void data_to_image_zyj(char* _filepath)
             cv::Mat close1;
             morphologyEx(bila_res, close1, MORPH_CLOSE, element);
             imshow("close-1", close1); //掩模大小
-            //边缘检测
-            // canny容易出现断点
-            //环扫提取有效轮廓
-            Mat edge_effe(300, 600, CV_8UC1, Scalar(0));
-            ringScanForEdge_Sector(close1, edge_effe, 130);
-            imshow("edge_effe", edge_effe);
-            zhencount++;
-            waitKey(0);
+            // //边缘检测
+            // // canny容易出现断点
+            // //环扫提取有效轮廓
+            // Mat edge_effe(300, 600, CV_8UC1, Scalar(0));
+            // ringScanForEdge_Sector(close1, edge_effe, 130);
+            // imshow("edge_effe", edge_effe);
+            // zhencount++;
+            // waitKey(0);
 
         }
         
@@ -179,128 +185,133 @@ void data_to_image_zyj(char* _filepath)
     cout << pingNum<<endl;
     cout << zhencount << endl;
 
-
 }
 
 void data_to_point_zyj(char* _filepath)
 {
-
-    ifstream ifs;
-    ifs.open(_filepath,ios::in);
-    if (!ifs.is_open())
-    {
-        cout << "fail to open"<< _filepath << endl;
-        return;
-    }
-    vector<vector<uchar>> dataMatrix_step2(294, vector<uchar>(300, 0)); //数据矩阵
-
-    string str_line;
-
-    int pingcount = 0;
-    int lastpingNum = -1;
-    int zhencount = 0;
     pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloud(new pcl::PointCloud<pcl::PointXYZ>);
 
-    cout << "start data to point " << endl;
+    ifstream ifs;
+    ifs.open(_filepath, ios::in);
+    if(!ifs.is_open())
+    {
+        cout << "fail to open" << _filepath << endl;
+        return;
+    }
+    
+    string str_line;
+    int lastpingNum = -1;
+    int zhencount = 0;
+
+    int nAngle = 0; //声纳上传的原始角度(0~588)
+    int pingNum = 0; //声纳单个ping的索引
+
+    vector<vector<uchar>> dataMatrix_step2(294, vector<uchar>(300, 0)); //数据矩阵
+
+    cout << "start data to image " << endl;
     while (getline(ifs, str_line))
     {
         vector<int> tempArray;
         str_to_int(str_line, tempArray);
-        if (tempArray[3] == 254 && tempArray[4] == 128 && tempArray[5] == 0 && tempArray[6] == 44 && tempArray[10] == 253)
+
+        for (int i = 0; i < 300; i++)
         {
-            int nAngle = (((tempArray[9] & 0x7f) << 7) | (tempArray[8] & 0x7f));
-            int pingNum = nAngle / 2;
-            if (lastpingNum == -1)
+            if (i<=30)
             {
-                lastpingNum = pingNum;
+                dataMatrix_step2[pingNum][i] = 7; //消除发射圈高亮
             }
-            else if (pingNum != (lastpingNum + 1) && abs(pingNum - lastpingNum) > 200)
-            {
-                continue;
+            else{
+                dataMatrix_step2[pingNum][i] = tempArray[i+1];
             }
+        }
 
-            for (int i = 0; i < 300; i++)
-            {
-                if (i <= 5)                           //量程1：21
-                    dataMatrix_step2[pingNum][i] = 7; //消除发射圈高亮
-                else
-                    dataMatrix_step2[pingNum][i] = tempArray[i + 11];
-                // dataMatrix_step2[pingNum][i] = tempArray[i + 11]*2;
-            }
+        pingNum++;
+        lastpingNum = pingNum -1;
 
-            pingcount++;
-            if (pingcount == 294) // 一圈结束
-            {
-                pingcount = 0; //先清零
-                lastpingNum = -1;
-                //------------------------扇形成像---------------------------------
-                drawSrcPingImage_step2(dataMatrix_step2, srcPingImage_step2); //绘制Ping图像,坐标变化前
-                Mat edge;
-                blur(srcPingImage_step2, edge, Size(3, 3)); //模糊图像
-                Canny(edge, edge, 30, 60, 3);
-                vector<vector<uchar>> edgeMatrix_step2(294, vector<uchar>(300, 0)); //数据矩阵
-                pingImage_to_Matrix_Step2(edge, edgeMatrix_step2);                  //转为数据矩阵
-                cv::Mat srcImageImproSector(300, 600, CV_8UC1, Scalar(255));        //插值成像图片
-                sonarImage_Impro_gray_step2(dataMatrix_step2, srcImageImproSector, edgeMatrix_step2, 1, 159);
-                // imshow("sectorimage_impro", srcImageImproSector);
+        if (pingNum == 294) // 一圈结束
+        {
+            cout << "show image " << endl;
+            pingNum = 0; //先清零
+            lastpingNum = -1;
+            //------------------------扇形成像---------------------------------
+            drawSrcPingImage_step2(dataMatrix_step2, srcPingImage_step2); //绘制Ping图像,坐标变化前
+            imshow("sonar_origin_image", srcPingImage_step2);
 
-                cv::Mat srcImageImproSector3(300, 600, CV_8UC3, Scalar(255, 255, 255)); //插值成像图片
-                sonarImage_Impro_step2(dataMatrix_step2, srcImageImproSector3, edgeMatrix_step2, 30, 130);  //20,140
-                // imshow("sectorimage_impro3", srcImageImproSector3);
+            Mat edge;
+            blur(srcPingImage_step2, edge, Size(3, 3)); //模糊图像
+            // imshow("after_bur", edge);
 
-                // waitKey(0);
-                //--------------------有效边缘-----------------------------
-                //图像增强
-                Mat pow_res15(300, 600, CV_8UC1, Scalar(0));
-                powerTrans(srcImageImproSector, pow_res15, 0.2, 2);
-                // imshow("pow_res15", pow_res15);
-                //图像降噪
-                cv::Mat bila_res;
-                bilateralFilter(pow_res15, bila_res, 24, 24 * 2, 24 / 2);
-                // imshow("bila_res", bila_res);
-                //形态学处理
-                Mat element = getStructuringElement(MORPH_ELLIPSE, Size(6, 6));
-                cv::Mat close1;
-                morphologyEx(bila_res, close1, MORPH_CLOSE, element);
-                // imshow("close-1", close1); //掩模大小
-                //边缘检测
-                // canny容易出现断点
-                //环扫提取有效轮廓
-                Mat edge_effe(300, 600, CV_8UC1, Scalar(0));
-                ringScanForEdge_Sector(close1, edge_effe, 130);
-                // imshow("edge_effe", edge_effe);
-                zhencount++;
-                // waitKey(0);
+            Canny(edge, edge, 30, 60, 3);
+            imshow("after_canny", edge);
+            
+            vector<vector<uchar>> edgeMatrix_step2(294, vector<uchar>(300, 0)); //数据矩阵
+            pingImage_to_Matrix_Step2(edge, edgeMatrix_step2);                  //转为数据矩阵
+            cv::Mat srcImageImproSector;                                        //插值成像图片(1维)
+            sonarImage_Impro_gray_step2(dataMatrix_step2, srcImageImproSector, edgeMatrix_step2, 1, 292);
+            imshow("sectorimage_impro", srcImageImproSector);
 
-                for (int r = 0; r < edge_effe.rows; r++)
+            cv::Mat srcImageImproSector3; //插值成像图片(3维)
+            sonarImage_Impro_step2(dataMatrix_step2, srcImageImproSector3, edgeMatrix_step2, 1, 291);  //20,140
+            imshow("sectorimage_impro3", srcImageImproSector3);
+            
+            //--------------------有效边缘-----------------------------
+            //图像增强
+            Mat pow_res15(600, 600, CV_8UC1, Scalar(0));
+            powerTrans(srcImageImproSector, pow_res15, 0.2, 2);
+            imshow("pow_res15", pow_res15);
+            //图像降噪
+            cv::Mat bila_res;
+            bilateralFilter(pow_res15, bila_res, 24, 24 * 2, 24 / 2);
+            imshow("bila_res", bila_res);
+            //形态学处理
+            Mat element = getStructuringElement(MORPH_ELLIPSE, Size(6, 6));
+            cv::Mat close1;
+            morphologyEx(bila_res, close1, MORPH_CLOSE, element);
+            imshow("close-1", close1); //掩模大小
+            imwrite("bridge1.jpg",close1);
+            // //边缘检测
+            // // canny容易出现断点
+            // //环扫提取有效轮廓
+            // Mat edge_effe(300, 600, CV_8UC1, Scalar(0));
+            // ringScanForEdge_Sector(close1, edge_effe, 130);
+            // imshow("edge_effe", edge_effe);
+            // zhencount++;
+            // waitKey(0);
+
+            for (int r = 0; r < close1.rows; r++)
                 {
-                    for (int c = 0; c < edge_effe.cols; c++)
+                    for (int c = 0; c < close1.cols; c++)
                     {
-                        if (edge_effe.at<uchar>(r, c) > 0)
+                        if (close1.at<uchar>(r, c) > 100)
                         {
-                            pcl::PointXYZ p;
-                            p.x = zhencount * 34;        //前进方向为X轴   小水池5
-                            p.y = (c - 300) * 3.333 * 3; //面向ROV右侧为Y轴  小水池3.333
-                            p.z = (300 - r) * 3.333 * 3; //垂直向上为Z轴   小水池3.333
+                            pcl::PointXYZ p;            //unit: mm
+                            p.x = (r - 300) * 3.333;
+                            p.y = (300 - c) * 3.333; //面向ROV右侧为Y轴  小水池3.333
+                            p.z = 0;
                             pointCloud->push_back(p);
                         }
                     }
                 }
-                if (zhencount == 68)
-                    break;
-            }
+
         }
+        
     }
+
+    cout << pingNum<<endl;
     cout << zhencount << endl;
 
     // Build a passthrough filter to remove spurious NaNs
-    pcl::PassThrough<PointT> pass; //直通滤波对象
+    // pcl::PassThrough<PointT> pass; //直通滤波对象
+    // pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
+    // pass.setInputCloud(pointCloud);
+    // pass.setFilterFieldName("y");
+    // pass.setFilterLimits(-1000, 1000);
+    // pass.filter(*cloud_filtered); //直通滤波保留（0，1.5）范围内的点
+    // pcl::io::savePCDFile("pcdpool-2.pcd", *cloud_filtered);
+
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
-    pass.setInputCloud(pointCloud);
-    pass.setFilterFieldName("y");
-    pass.setFilterLimits(-1000, 1000);
-    pass.filter(*cloud_filtered); //直通滤波保留（0，1.5）范围内的点
-    pcl::io::savePCDFile("pcdpool-2.pcd", *cloud_filtered);
+    cloud_filtered = pointCloud;
+    pcl::io::savePCDFile("bridge1.pcd", *cloud_filtered);
 
     // boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("pointcloud"));
     pcl::visualization::PCLVisualizer viewer("display");
@@ -310,6 +321,7 @@ void data_to_point_zyj(char* _filepath)
     viewer.addPointCloud(cloud_filtered, blue, "cloud");
     viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, "cloud"); //设置点云大小
     viewer.spin();
+
 }
 
 void data_to_point(char* _filepath)

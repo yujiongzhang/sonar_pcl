@@ -984,33 +984,8 @@ void sonarImage_Impro_step2(vector<vector<uchar>>& matrix, cv::Mat& imageSector,
         }
     }
     //imshow("image", imageCubic);
-    //图片旋转裁剪
-    Mat dst, M;//M为变换矩阵
 
-     // int rotateAngle = pingBegin*360.0/294.0-120; //旋转角度
-    int rotateAngle = (pingBegin+pingEnd)/2.*360.0/294.0-180;
-
-    // int rotateAngle = pingBegin*360.0/294.0-120; //旋转角度
-	int w = imageImpro.cols;
-	int h = imageImpro.rows;
-	M = getRotationMatrix2D(Point2f(w / 2, h / 2), rotateAngle, 1.0);
- 
-	//C++的abs则可以自然支持对整数和浮点数两个版本（实际上还能够支持复数）
-	double cos = abs(M.at<double>(0, 0));
-	double sin = abs(M.at<double>(0, 1));
- 
-	int nw = w * cos + h * sin;
-	int nh = w * sin + h * cos;
- 
-	//新图像的旋转中心
-	M.at<double>(0, 2) += (nw / 2 - w / 2);
-	M.at<double>(1, 2) += (nh / 2 - h / 2);
- 
-	warpAffine(imageImpro, dst, M, Size(nw,nh),INTER_CUBIC,0,Scalar(0,0,0));
- 
-	//imshow("旋转演示", dst);
-
-    imageSector=dst(cv::Rect(nw/2-300,nh/2,600,302));
+    imageSector = imageImpro;
 }
 
 //得到均方误差MSE
@@ -1801,7 +1776,126 @@ void sonarImage_Impro_gray_step2(vector<vector<uchar>>& matrix, cv::Mat& imageSe
             }
         }
     }
-    // imshow("image", imageImpro);
+
+    imageSector = imageImpro;
+}
+
+
+void sonarImage_Impro_gray_step2_zyj(vector<vector<uchar>>& matrix, cv::Mat& imageSector, vector<vector<uchar>>& edgeMatrix, 
+                            int pingBegin, int pingEnd)
+{
+    // initColortable();
+
+    cv::Mat imageImpro(600,600, CV_8UC1, cv::Scalar(0));//插值成像图片
+    double dAngle = 2 * PI / 294.0; // rad  步距角
+
+    for (int y = 300; y > -300; y--)
+    {
+        for (int x = -300; x < 300; x++)
+        {
+            double r = sqrt(x * x + y * y); //精确行号
+            if (r >= 299)
+                continue;
+            double angle; // rad 与y轴正方向的夹角
+            if (y < 0)
+            {
+                angle = atan(x * 1.0 / y) + PI;
+            }
+            else if (y == 0)
+            {
+                if (x < 0)
+                    angle = 1.5 * PI;
+                else
+                    angle = 0.5 * PI;
+            }
+            else
+            {
+                if (x < 0)
+                    angle = atan(x * 1.0 / y) + 2 * PI;
+                else
+                    angle = atan(x * 1.0 / y);
+            }
+            double pingNum = angle / dAngle;    //精确波束号,double
+            //double r=sqrt(x * x + y * y);     //精确行号
+            int UT=0;//强度值
+
+            int prePingNum = angle / dAngle;    //向下取整
+            int afterPingNum = prePingNum + 1;  //向上取整
+            if (afterPingNum == 294) afterPingNum = 0;
+            int prer = sqrt(x * x + y * y);
+            int afterr = prer + 1;
+
+            int UA = matrix[prePingNum][afterr];
+            int UB = matrix[afterPingNum][afterr];
+            int UC = matrix[prePingNum][prer];
+            int UD = matrix[afterPingNum][prer];
+
+            int EA = edgeMatrix[prePingNum][afterr];
+            int EB = edgeMatrix[afterPingNum][afterr];
+            int EC = edgeMatrix[prePingNum][prer];
+            int ED = edgeMatrix[afterPingNum][prer];
+
+            if(pingNum>=pingBegin && pingNum<=pingEnd){
+                if((EA==0 && EB==0 && EC==0 && ED==0) || (r<=4) || (r>=296))  //不为边缘像素点：用周向和径向线性插值
+                {
+                    double UE = (afterr - r) * UC + (1 - (afterr - r)) * UA;
+                    double UF = (afterr - r) * UD + (1 - (afterr - r)) * UB;
+                    UT = (pingNum - prePingNum) * UF + (1 - (pingNum - prePingNum)) * UE+0.5;
+                }
+                else {  //位于边缘像素点：用复杂方法插值
+                
+                    // int prePingNum = angle / dAngle;
+                    // int prer = sqrt(x * x + y * y);  //左下
+
+                    double weight_angle=pingNum-prePingNum;
+                    double weight_distance=prer+1-r;
+
+                    Eigen::Matrix<float, 1, 4> A;
+                    //MatrixXf A(1,4);
+                    A<<func_Cubic(1+weight_distance), func_Cubic(weight_distance),
+                       func_Cubic(weight_distance-1), func_Cubic(weight_distance-2);
+                    // A<<func_Cubic(1+weight_angle), func_Cubic(weight_angle),
+                    //    func_Cubic(weight_angle-1), func_Cubic(weight_angle-2);
+
+                    Matrix4f B;
+                    B<<matrix[prePingNum-1][prer+2], matrix[prePingNum][prer+2], matrix[prePingNum+1][prer+2], matrix[prePingNum+2][prer+2],
+                    matrix[prePingNum-1][prer+1], matrix[prePingNum][prer+1], matrix[prePingNum+1][prer+1], matrix[prePingNum+2][prer+1],
+                    matrix[prePingNum-1][prer], matrix[prePingNum][prer], matrix[prePingNum+1][prer], matrix[prePingNum+2][prer],
+                    matrix[prePingNum-1][prer-1], matrix[prePingNum][prer-1], matrix[prePingNum+1][prer-1], matrix[prePingNum+2][prer-1];
+                    
+                    Eigen::Matrix<float, 4, 1> C;
+                    //MatrixXf C(4,1);
+                    C<<func_Cubic(1+weight_angle), func_Cubic(weight_angle),
+                       func_Cubic(weight_angle-1), func_Cubic(weight_angle-2);
+                    // C<<func_Cubic(1+weight_distance), func_Cubic(weight_distance),
+                    //     func_Cubic(weight_distance-1), func_Cubic(weight_distance-2);
+
+                    MatrixXf D(1,4);
+                    D=A*B;
+
+                    Eigen::Matrix<float, 1, 1> E;
+                    E=D*C;
+
+                    UT=(int)(E(0,0)+0.5);
+
+                }
+                
+                int row = 300 - y;
+                int col = x + 300;
+
+                // if(UT>127) UT=127;
+                if(UT<0) UT=0;
+
+                imageImpro.at<uchar>(row, col) = UT*2;
+                // uchar *data = imageImpro.ptr<uchar>(row);
+                // data[3 * col] = colorTable[UT * 6 + 2];     // B
+                // data[3 * col + 1] = colorTable[UT * 6 + 1]; // G
+                // data[3 * col + 2] = colorTable[UT * 6];     // R
+                
+            }
+        }
+    }
+    // imshow("image_impro", imageImpro);
     //图片旋转裁剪
     Mat dst, M;//M为变换矩阵
 
@@ -1809,7 +1903,7 @@ void sonarImage_Impro_gray_step2(vector<vector<uchar>>& matrix, cv::Mat& imageSe
     int rotateAngle = (pingBegin+pingEnd)/2.*360.0/294.0-180;
 	int w = imageImpro.cols;
 	int h = imageImpro.rows;
-	M = getRotationMatrix2D(Point2f(w / 2, h / 2), rotateAngle, 1.0);
+	M = getRotationMatrix2D(Point2f(w / 2, h / 2), rotateAngle, 1.0);//中心点坐标,旋转角度,缩放比例
  
 	//C++的abs则可以自然支持对整数和浮点数两个版本（实际上还能够支持复数）
 	double cos = abs(M.at<double>(0, 0));
@@ -1824,9 +1918,9 @@ void sonarImage_Impro_gray_step2(vector<vector<uchar>>& matrix, cv::Mat& imageSe
  
 	warpAffine(imageImpro, dst, M, Size(nw,nh),INTER_CUBIC,0,Scalar(0));
  
-	//imshow("旋转演示", dst);
+	// imshow("旋转演示", dst);
 
-    imageSector=dst(cv::Rect(nw/2-300,nh/2,600,300));
+    imageSector=dst(cv::Rect(0,0,600,600));
 }
 
 void sonarImage_Impro_gray_step2_540(vector<vector<uchar>>& matrix, cv::Mat& imageSector, vector<vector<uchar>>& edgeMatrix, 
@@ -1948,7 +2042,7 @@ void sonarImage_Impro_gray_step2_540(vector<vector<uchar>>& matrix, cv::Mat& ima
     int rotateAngle = pingBegin*360.0/540.0-120; //旋转角度
 	int w = imageImpro.cols;
 	int h = imageImpro.rows;
-	M = getRotationMatrix2D(Point2f(w / 2, h / 2), rotateAngle, 1.0);
+	M = getRotationMatrix2D(Point2f(w / 2, h / 2), rotateAngle, 1.0);//中心点坐标,旋转角度,缩放比例
  
 	//C++的abs则可以自然支持对整数和浮点数两个版本（实际上还能够支持复数）
 	double cos = abs(M.at<double>(0, 0));

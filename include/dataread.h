@@ -39,6 +39,8 @@ void sonarImage_Impro_step2(vector<vector<uchar>>& matrix, cv::Mat& imageSector,
                             int pingBegin, int pingEnd);
 void sonarImage_Impro_gray_step2(vector<vector<uchar>>& matrix, cv::Mat& imageSector, vector<vector<uchar>>& edgeMatrix, 
                             int pingBegin, int pingEnd);
+void sonarImage_Impro_gray_step2_zyj(vector<vector<uchar>>& matrix, cv::Mat& imageSector, vector<vector<uchar>>& edgeMatrix, 
+                            int pingBegin, int pingEnd);
 void sonarImage_Impro_gray_step2_540(vector<vector<uchar>>& matrix, cv::Mat& imageSector, vector<vector<uchar>>& edgeMatrix, 
                             int pingBegin, int pingEnd);
 
