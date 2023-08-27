@@ -79,8 +79,9 @@ int main(int argc, char **argv)
     // edge_test();
 
     // data_to_point(argv[1]);
+    data_to_image_zyj(argv[1]);
 
-    data_to_point_zyj(argv[1]);
+    // data_to_point_zyj(argv[1]);
 
     waitKey(0);
     return 0;
@@ -115,13 +116,13 @@ void data_to_image_zyj(char* _filepath)
 
         for (int i = 0; i < 300; i++)
         {
-            if (i<=30)
-            {
-                dataMatrix_step2[pingNum][i] = 7; //消除发射圈高亮
-            }
-            else{
+            // if (i<=7)
+            // {
+            //     dataMatrix_step2[pingNum][i] = 4; //消除发射圈高亮
+            // }
+            // else{
                 dataMatrix_step2[pingNum][i] = tempArray[i+1];
-            }
+            // }
         }
 
         pingNum++;
@@ -148,10 +149,12 @@ void data_to_image_zyj(char* _filepath)
             cv::Mat srcImageImproSector;                                        //插值成像图片(1维)
             sonarImage_Impro_gray_step2(dataMatrix_step2, srcImageImproSector, edgeMatrix_step2, 1, 292);
             imshow("sectorimage_impro", srcImageImproSector);
+            imwrite(strcat(_filepath,"sectorimage_impro.jpg"), srcImageImproSector);
 
             cv::Mat srcImageImproSector3; //插值成像图片(3维)
             sonarImage_Impro_step2(dataMatrix_step2, srcImageImproSector3, edgeMatrix_step2, 1, 291);  //20,140
             imshow("sectorimage_impro3", srcImageImproSector3);
+            imwrite(strcat(_filepath,"sectorimage_impro3.jpg"), srcImageImproSector3);
 
             // // waitKey(0);
             
@@ -169,6 +172,7 @@ void data_to_image_zyj(char* _filepath)
             cv::Mat close1;
             morphologyEx(bila_res, close1, MORPH_CLOSE, element);
             imshow("close-1", close1); //掩模大小
+            imwrite(strcat(_filepath,"close1.jpg"), close1);
             // //边缘检测
             // // canny容易出现断点
             // //环扫提取有效轮廓
