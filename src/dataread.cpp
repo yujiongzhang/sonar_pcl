@@ -926,55 +926,45 @@ void sonarImage_Impro_step2(vector<vector<uchar>>& matrix, cv::Mat& imageSector,
             int ED = edgeMatrix[afterPingNum][prer];
 
             if(pingNum>=pingBegin && pingNum<=pingEnd){
-                if((EA==0 && EB==0 && EC==0 && ED==0) || (r<=4) || (r>=296)) {
+                // if((EA==0 && EB==0 && EC==0 && ED==0) || (r<=4) || (r>=296)) {
                     double UE = (afterr - r) * UC + (1 - (afterr - r)) * UA;
                     double UF = (afterr - r) * UD + (1 - (afterr - r)) * UB;
                     UT = (pingNum - prePingNum) * UF + (1 - (pingNum - prePingNum)) * UE + 0.5;
-                }
-                else {
-                    // int prePingNum = angle / dAngle;
-                    // int prer = sqrt(x * x + y * y);  //左下
+                // }
+                // else {
 
-                    double weight_angle=pingNum-prePingNum;
-                    double weight_distance=prer+1-r;
+                //     double weight_angle=pingNum-prePingNum;
+                //     double weight_distance=prer+1-r;
 
-                    Eigen::Matrix<float, 1, 4> A;
-                    //MatrixXf A(1,4);
-                    A<<func_Cubic(1+weight_distance), func_Cubic(weight_distance),
-                       func_Cubic(weight_distance-1), func_Cubic(weight_distance-2);
-                    // A<<func_Cubic(1+weight_angle), func_Cubic(weight_angle),
-                    //    func_Cubic(weight_angle-1), func_Cubic(weight_angle-2);
+                //     Eigen::Matrix<float, 1, 4> A;
+                //     A<<func_Cubic(1+weight_distance), func_Cubic(weight_distance),
+                //        func_Cubic(weight_distance-1), func_Cubic(weight_distance-2);
 
-                    Matrix4f B;
-                    B<<matrix[prePingNum-1][prer+2], matrix[prePingNum][prer+2], matrix[prePingNum+1][prer+2], matrix[prePingNum+2][prer+2],
-                    matrix[prePingNum-1][prer+1], matrix[prePingNum][prer+1], matrix[prePingNum+1][prer+1], matrix[prePingNum+2][prer+1],
-                    matrix[prePingNum-1][prer], matrix[prePingNum][prer], matrix[prePingNum+1][prer], matrix[prePingNum+2][prer],
-                    matrix[prePingNum-1][prer-1], matrix[prePingNum][prer-1], matrix[prePingNum+1][prer-1], matrix[prePingNum+2][prer-1];
+                //     Matrix4f B;
+                //     B<<matrix[prePingNum-1][prer+2], matrix[prePingNum][prer+2], matrix[prePingNum+1][prer+2], matrix[prePingNum+2][prer+2],
+                //     matrix[prePingNum-1][prer+1], matrix[prePingNum][prer+1], matrix[prePingNum+1][prer+1], matrix[prePingNum+2][prer+1],
+                //     matrix[prePingNum-1][prer], matrix[prePingNum][prer], matrix[prePingNum+1][prer], matrix[prePingNum+2][prer],
+                //     matrix[prePingNum-1][prer-1], matrix[prePingNum][prer-1], matrix[prePingNum+1][prer-1], matrix[prePingNum+2][prer-1];
                     
-                    Eigen::Matrix<float, 4, 1> C;
-                    //MatrixXf C(4,1);
-                    C<<func_Cubic(1+weight_angle), func_Cubic(weight_angle),
-                       func_Cubic(weight_angle-1), func_Cubic(weight_angle-2);
-                    // C<<func_Cubic(1+weight_distance), func_Cubic(weight_distance),
-                    //     func_Cubic(weight_distance-1), func_Cubic(weight_distance-2);
+                //     Eigen::Matrix<float, 4, 1> C;
+                //     C<<func_Cubic(1+weight_angle), func_Cubic(weight_angle),
+                //        func_Cubic(weight_angle-1), func_Cubic(weight_angle-2);
 
-                    MatrixXf D(1,4);
-                    D=A*B;
+                //     MatrixXf D(1,4);
+                //     D=A*B;
 
-                    Eigen::Matrix<float, 1, 1> E;
-                    E=D*C;
+                //     Eigen::Matrix<float, 1, 1> E;
+                //     E=D*C;
 
-                    UT=(int)(E(0,0)+0.5);
+                //     UT=(int)(E(0,0)+0.5);
 
-                }
+                // }
                 
                 int row = 300 - y;
                 int col = x + 300;
 
-                // if(UT>127) UT=127;
                 if(UT<0) UT=0;
 
-                // imageImpro.at<uchar>(row, col) = UT;
                 uchar *data = imageImpro.ptr<uchar>(row);
                 data[3 * col] = colorTable[UT * 6 + 2];     // B
                 data[3 * col + 1] = colorTable[UT * 6 + 1]; // G
@@ -983,7 +973,6 @@ void sonarImage_Impro_step2(vector<vector<uchar>>& matrix, cv::Mat& imageSector,
             }
         }
     }
-    //imshow("image", imageCubic);
 
     imageSector = imageImpro;
 }
@@ -1703,7 +1692,7 @@ void sonarImage_Impro_gray_step2(vector<vector<uchar>>& matrix, cv::Mat& imageSe
             int prePingNum = angle / dAngle;    //向下取整
             int afterPingNum = prePingNum + 1;  //向上取整
             if (afterPingNum == 294) afterPingNum = 0;
-            int prer = sqrt(x * x + y * y);
+            int prer = sqrt(x * x + y * y);     //向下取整
             int afterr = prer + 1;
 
             int UA = matrix[prePingNum][afterr];
@@ -1717,61 +1706,47 @@ void sonarImage_Impro_gray_step2(vector<vector<uchar>>& matrix, cv::Mat& imageSe
             int ED = edgeMatrix[afterPingNum][prer];
 
             if(pingNum>=pingBegin && pingNum<=pingEnd){
-                if((EA==0 && EB==0 && EC==0 && ED==0) || (r<=4) || (r>=296))  //不为边缘像素点：用周向和径向线性插值
-                {
+                // if((EA==0 && EB==0 && EC==0 && ED==0) || (r<=4) || (r>=296))  //不为边缘像素点：用周向和径向线性插值
+                // {
                     double UE = (afterr - r) * UC + (1 - (afterr - r)) * UA;
                     double UF = (afterr - r) * UD + (1 - (afterr - r)) * UB;
                     UT = (pingNum - prePingNum) * UF + (1 - (pingNum - prePingNum)) * UE+0.5;
-                }
-                else {  //位于边缘像素点：用复杂方法插值
+                // }
+                // else {  //位于边缘像素点：用复杂方法插值
                 
-                    // int prePingNum = angle / dAngle;
-                    // int prer = sqrt(x * x + y * y);  //左下
+                //     double weight_angle=pingNum-prePingNum;
+                //     double weight_distance=prer+1-r;
 
-                    double weight_angle=pingNum-prePingNum;
-                    double weight_distance=prer+1-r;
+                //     Eigen::Matrix<float, 1, 4> A;
+                //     A<<func_Cubic(1+weight_distance), func_Cubic(weight_distance),
+                //        func_Cubic(weight_distance-1), func_Cubic(weight_distance-2);
 
-                    Eigen::Matrix<float, 1, 4> A;
-                    //MatrixXf A(1,4);
-                    A<<func_Cubic(1+weight_distance), func_Cubic(weight_distance),
-                       func_Cubic(weight_distance-1), func_Cubic(weight_distance-2);
-                    // A<<func_Cubic(1+weight_angle), func_Cubic(weight_angle),
-                    //    func_Cubic(weight_angle-1), func_Cubic(weight_angle-2);
-
-                    Matrix4f B;
-                    B<<matrix[prePingNum-1][prer+2], matrix[prePingNum][prer+2], matrix[prePingNum+1][prer+2], matrix[prePingNum+2][prer+2],
-                    matrix[prePingNum-1][prer+1], matrix[prePingNum][prer+1], matrix[prePingNum+1][prer+1], matrix[prePingNum+2][prer+1],
-                    matrix[prePingNum-1][prer], matrix[prePingNum][prer], matrix[prePingNum+1][prer], matrix[prePingNum+2][prer],
-                    matrix[prePingNum-1][prer-1], matrix[prePingNum][prer-1], matrix[prePingNum+1][prer-1], matrix[prePingNum+2][prer-1];
+                //     Matrix4f B;
+                //     B<<matrix[prePingNum-1][prer+2], matrix[prePingNum][prer+2], matrix[prePingNum+1][prer+2], matrix[prePingNum+2][prer+2],
+                //     matrix[prePingNum-1][prer+1], matrix[prePingNum][prer+1], matrix[prePingNum+1][prer+1], matrix[prePingNum+2][prer+1],
+                //     matrix[prePingNum-1][prer], matrix[prePingNum][prer], matrix[prePingNum+1][prer], matrix[prePingNum+2][prer],
+                //     matrix[prePingNum-1][prer-1], matrix[prePingNum][prer-1], matrix[prePingNum+1][prer-1], matrix[prePingNum+2][prer-1];
                     
-                    Eigen::Matrix<float, 4, 1> C;
-                    //MatrixXf C(4,1);
-                    C<<func_Cubic(1+weight_angle), func_Cubic(weight_angle),
-                       func_Cubic(weight_angle-1), func_Cubic(weight_angle-2);
-                    // C<<func_Cubic(1+weight_distance), func_Cubic(weight_distance),
-                    //     func_Cubic(weight_distance-1), func_Cubic(weight_distance-2);
+                //     Eigen::Matrix<float, 4, 1> C;
+                //     C<<func_Cubic(1+weight_angle), func_Cubic(weight_angle),
+                //        func_Cubic(weight_angle-1), func_Cubic(weight_angle-2);
 
-                    MatrixXf D(1,4);
-                    D=A*B;
+                //     MatrixXf D(1,4);
+                //     D=A*B;
 
-                    Eigen::Matrix<float, 1, 1> E;
-                    E=D*C;
+                //     Eigen::Matrix<float, 1, 1> E;
+                //     E=D*C;
 
-                    UT=(int)(E(0,0)+0.5);
+                //     UT=(int)(E(0,0)+0.5);
 
-                }
+                // }
                 
                 int row = 300 - y;
                 int col = x + 300;
 
-                // if(UT>127) UT=127;
                 if(UT<0) UT=0;
 
                 imageImpro.at<uchar>(row, col) = UT*2;
-                // uchar *data = imageImpro.ptr<uchar>(row);
-                // data[3 * col] = colorTable[UT * 6 + 2];     // B
-                // data[3 * col + 1] = colorTable[UT * 6 + 1]; // G
-                // data[3 * col + 2] = colorTable[UT * 6];     // R
                 
             }
         }
