@@ -79,9 +79,9 @@ int main(int argc, char **argv)
     // edge_test();
 
     // data_to_point(argv[1]);
-    data_to_image_zyj(argv[1]);
 
-    // data_to_point_zyj(argv[1]);
+    // data_to_image_zyj(argv[1]);
+    data_to_point_zyj(argv[1]);
 
     waitKey(0);
     return 0;
@@ -251,12 +251,14 @@ void data_to_point_zyj(char* _filepath)
             vector<vector<uchar>> edgeMatrix_step2(294, vector<uchar>(300, 0)); //数据矩阵
             pingImage_to_Matrix_Step2(edge, edgeMatrix_step2);                  //转为数据矩阵
             cv::Mat srcImageImproSector;                                        //插值成像图片(1维)
-            sonarImage_Impro_gray_step2(dataMatrix_step2, srcImageImproSector, edgeMatrix_step2, 1, 292);
+            sonarImage_Impro_gray_step2(dataMatrix_step2, srcImageImproSector, edgeMatrix_step2, 0, 294);
             imshow("sectorimage_impro", srcImageImproSector);
+            imwrite(strcat(_filepath,"sectorimage_impro.jpg"), srcImageImproSector);
 
             cv::Mat srcImageImproSector3; //插值成像图片(3维)
-            sonarImage_Impro_step2(dataMatrix_step2, srcImageImproSector3, edgeMatrix_step2, 1, 291);  //20,140
+            sonarImage_Impro_step2(dataMatrix_step2, srcImageImproSector3, edgeMatrix_step2, 0, 294);  //20,140
             imshow("sectorimage_impro3", srcImageImproSector3);
+            imwrite(strcat(_filepath,"sectorimage_impro3.jpg"), srcImageImproSector3);
             
             //--------------------有效边缘-----------------------------
             //图像增强
